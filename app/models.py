@@ -4,7 +4,7 @@ import uuid
 from datetime import datetime, timezone
 from enum import Enum
 
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, Field, model_validator
 
 
 class Engine(str, Enum):
@@ -71,13 +71,11 @@ class ProvisionRequest(BaseModel):
     users: list[DBUser] = Field(default_factory=lambda: [DBUser(name="appuser")])
     deletion_protection: bool = False
 
-    @field_validator("deletion_protection", mode="after")
-    @classmethod
-    def prod_must_protect(cls, v: bool, info) -> bool:
-        env = info.data.get("environment")
-        if env == Environment.PROD and not v:
+    @model_validator(mode="after")
+    def prod_must_protect(self):
+        if self.environment == Environment.PROD and not self.deletion_protection:
             raise ValueError("deletion_protection must be true for prod environment")
-        return v
+        return self
 
 
 class ProvisionStatus(str, Enum):
