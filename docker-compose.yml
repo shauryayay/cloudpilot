@@ -1,0 +1,40 @@
+services:
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      retries: 3
+
+  api:
+    build: .
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+    ports:
+      - "8000:8000"
+    volumes:
+      - .:/code
+      - gitops-repo:/code/gitops-repo
+    environment:
+      - REDIS_URL=redis://redis:6379/0
+      - GITOPS_REPO_PATH=/code/gitops-repo
+    depends_on:
+      redis:
+        condition: service_healthy
+
+  worker:
+    build: .
+    command: celery -A app.worker worker --loglevel=info --concurrency=2
+    volumes:
+      - .:/code
+      - gitops-repo:/code/gitops-repo
+    environment:
+      - REDIS_URL=redis://redis:6379/0
+      - GITOPS_REPO_PATH=/code/gitops-repo
+    depends_on:
+      redis:
+        condition: service_healthy
+
+volumes:
+  gitops-repo:

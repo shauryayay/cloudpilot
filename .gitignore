@@ -1,0 +1,7 @@
+GUIDE.md
+__pycache__/
+*.pyc
+.env
+.venv/
+venv/
+*.egg-info/
